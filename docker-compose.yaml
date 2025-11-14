@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clin-supply-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY_1=${GEMINI_API_KEY_1:-}
+      - GEMINI_API_KEY_2=${GEMINI_API_KEY_2:-}
+      - GEMINI_API_KEY_3=${GEMINI_API_KEY_3:-}
+      - AGENTOPS_API_KEY=${AGENTOPS_API_KEY}
+      - DATA_DIR=/app/data
+      - ENV=${ENV:-production}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+    volumes:
+      - ./data:/app/data:ro
+      - ./uploads:/tmp/uploads
+    networks:
+      - clin-supply-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clin-supply-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - clin-supply-network
+    restart: unless-stopped
+
+networks:
+  clin-supply-network:
+    driver: bridge
+
